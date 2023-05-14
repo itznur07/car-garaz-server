@@ -47,6 +47,12 @@ async function run() {
     });
 
     /** Orders Oparetion */
+
+    app.get("/orders", async (req, res) => {
+      const result = await ordersCollection.find().toArray();
+      res.send(result);
+    });
+
     app.post("/orders", async (req, res) => {
       const order = req.body;
       const result = await ordersCollection.insertOne(order);
