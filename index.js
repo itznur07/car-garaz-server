@@ -65,7 +65,7 @@ async function run() {
     });
 
     /** Services Oparetion */
-    app.get("/services", verifyJWT, async (req, res) => {
+    app.get("/services", async (req, res) => {
       const cursor = serviceCollection.find();
       const result = await cursor.toArray();
       res.send(result);
