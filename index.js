@@ -6,12 +6,35 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
-/** Middleware */
+/** Middlewares here */
 app.use(cors());
 app.use(express.json());
 
-/** Database connection */
+/** VERIFY JWT TOKEN BASED AUTHENTIVCATION */
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  /** Check token authorization */
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, message: "unauthorized access" });
+  }
+  const token = authorization.split(" ")[1];
+  /** Token verify */
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+    if (error) {
+      return res
+        .status(403)
+        .send({ error: true, message: "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
+/** Middlewares ends here */
+
+/** Database connection */
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.oyqvv5q.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -35,7 +58,6 @@ async function run() {
     /** JWT Oparetion */
     app.post("/jwt", (req, res) => {
       const user = req.body;
-
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1h",
       });
@@ -43,7 +65,7 @@ async function run() {
     });
 
     /** Services Oparetion */
-    app.get("/services", async (req, res) => {
+    app.get("/services", verifyJWT, async (req, res) => {
       const cursor = serviceCollection.find();
       const result = await cursor.toArray();
       res.send(result);
@@ -58,7 +80,11 @@ async function run() {
 
     /** Orders Oparetion */
 
-    app.get("/orders", async (req, res) => {
+    app.get("/orders", verifyJWT, async (req, res) => {
+      const decoded = req.decoded;
+      if (decoded?.email !== req.query.email) {
+        return res.send({ error: 1, message: "Forbidden access" });
+      }
       let query = {};
       if (req.query?.email) {
         query = { email: req.query?.email };
